@@ -1,0 +1,11 @@
+@using System.ComponentModel.DataAnnotations
+
+<h1>@Title</h1>
+
+@code {
+
+    [Parameter]
+    [Required]
+    [EditorRequired]
+    public string Title { get; set; }
+}

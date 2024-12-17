@@ -1,0 +1,88 @@
+@page "/products"
+@inject ILogger<Query> logger;
+@inject IProductsService productsService;
+@inject NavigationManager navigationManager
+@inject IJSRuntime jsRuntime
+@inject IToastService toastService
+
+<PageTitle>Products</PageTitle>
+
+<ModuleTitle Title="Productos" />
+
+<button class="btn btn-dark mb-4" @onclick="@(() => navigationManager.NavigateTo("products-new"))">Add new
+    product</button>
+
+@if (products is not null && products.Any())
+{
+    <div class="products-container">
+        @foreach (var product in products)
+        {
+            <div class="card">
+                <img class="card-img-top" src="@product.Images[0]" alt="Producto" loading="lazy" width="270">
+                <div class="card-body">
+                    <h4><b>@product.Title</b></h4>
+                    <p>@product.Price?.ToString("C")</p>
+                </div>
+                <div class="card-footer">
+                    <button title="Delete" @onclick="@(() => Delete(product.Id))" class="btn btn-outline-danger"><span
+                            class="bi bi-trash-fill"> Delete</span></button>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <p>No hay Productos</p>
+}
+@if (loading)
+{
+    <div class="loading-overlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+
+
+@code {
+    private List<Product>? products;
+    private bool loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        await GetProductsAsync();
+        loading = false;
+    }
+
+    private async Task GetProductsAsync()
+    {
+        products = await productsService.GetAsync();
+    }
+
+    private async Task Delete(int productId)
+    {
+        if (!await jsRuntime.InvokeAsync<bool>("confirm", $"Are you sure to remove this product?"))
+            return;
+
+        loading = true;
+
+        try
+        {
+            await productsService.Delete(productId);
+
+            await GetProductsAsync();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e.Message, "an error while deleting product");
+            toastService.ShowError("An error while deleting product");
+        }
+        finally
+        {
+            toastService.ShowSuccess("Product deleted");
+            loading = false;
+        }
+    }
+}
